@@ -1,6 +1,5 @@
-# test
-test
-fffffff
-111111111112
-反反复复
-我最新更改了啊啊啊 麻蛋没有pull直接提交了
+git 鏁欑▼  http://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b000/
+1.https://git-for-windows.github.io/
+2.https://tortoisegit.org/
+3.娉ㄥ唽github璐﹀彿  https://github.com
+4.缁冧範 https://github.com/wuzp/test
