@@ -91,6 +91,75 @@ def getURL(url, tries_num=5, sleep_time=0, time_out=10,max_retry = 5):
                 print (getCurrentTime(), url, 'URL Connection Error: 第', max_retry - tries_num_p, u'次 Retry Connection', e)
                 return getURL(url, tries_num_p, sleep_time_p, time_out_p,max_retry)
         return res
+def getFundNavCore(self,page,records,fund_code,fund_url):
+        '''
+        获取基金净值数据，因为基金列表中是所有基金代码，一般净值型基金和货币基金数据稍有差异，下面根据数据表格长度判断是一般基金还是货币基金，分别入库
+        :param page:
+        :records:
+        :return:
+        '''
+
+        try:
+            myfund_code=str(fund_code).zfill(6)
+            #根据基金代码和总记录数，一次返回所有历史净值
+            fund_nav='http://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz&code='+myfund_code+'&page='+str(page)+'&per='+str(records)
+            res = getURL(fund_nav)
+            soup = BeautifulSoup(res.text, 'html.parser')
+        except  Exception as e:
+            print (self.getCurrentTime(),'getFundNav2', fund_code,fund_url,e )
+ 
+        result={}
+        result['fund_code']=fund_code
+        tables = soup.findAll('table')
+        tab = tables[0]
+        i=0
+        #先用本办法，解析表格，逐行逐单元格获取净值数据
+        for tr in tab.findAll('tr'):
+            #跳过表头；获取净值、累计净值和日收益率数据 如果列数为7，可以判断为一般基金。当然也可以通过标题或者基金类型参数来判断，待后续优化
+            if tr.findAll('td') and len((tr.findAll('td')))==7 :
+                i=i+1
+                try:
+                     result['the_date']= (tr.select('td:nth-of-type(1)')[0].getText().strip() )
+                     result['nav']= (tr.select('td:nth-of-type(2)')[0].getText().strip() )
+                     result['add_nav']= (tr.select('td:nth-of-type(3)')[0].getText().strip() )
+                     result['nav_chg_rate']= (tr.select('td:nth-of-type(4)')[0].getText().strip() )
+                     result['buy_state']= (tr.select('td:nth-of-type(5)')[0].getText().strip() )
+                     result['sell_state']= tr.select('td:nth-of-type(6)')[0].getText().strip()
+                     result['div_record']= tr.select('td:nth-of-type(7)')[0].getText().strip().strip('\'')
+                     #print (self.getCurrentTime(),i,result['fund_code'],result['the_date'],result['nav'],result['add_nav'],result['nav_chg_rate'],result['buy_state'],result['sell_state'] )
+                except  Exception as e:
+                     print (self.getCurrentTime(),'getFundNav3', fund_code,fund_url,e )
+                try:
+                    mySQL.insertData('fund_nav', result)
+                    print (self.getCurrentTime(),'fund_nav',str(i)+'/'+str(records),result['fund_code'],result['the_date'],result['nav'],result['add_nav'],result['nav_chg_rate'],result['buy_state'],result['sell_state'],result['div_record'] )
+                except  Exception as e:
+                    print (self.getCurrentTime(),'getFundNav4', fund_code,fund_url,e )
+            #如果是货币基金，获取万份收益和7日年化利率
+            elif  tr.findAll('td') and len((tr.findAll('td')))==6:
+                i=i+1
+                try:
+                     result['the_date']= (tr.select('td:nth-of-type(1)')[0].getText().strip() )
+                     #result['nav']=1
+                     result['profit_per_units']= (tr.select('td:nth-of-type(2)')[0].getText().strip() )
+                     result['profit_rate']= (tr.select('td:nth-of-type(3)')[0].getText().strip() )
+                     result['buy_state']= (tr.select('td:nth-of-type(4)')[0].getText().strip() )
+                     result['sell_state']= (tr.select('td:nth-of-type(5)')[0].getText().strip() )
+                     result['div_record']= (tr.select('td:nth-of-type(6)')[0].getText().strip() )
+                     #print (self.getCurrentTime(),i,result['fund_code'],result['the_date'],result['nav'],result['add_nav'],result['nav_chg_rate'],result['buy_state'],result['sell_state'] )
+                except  Exception as e:
+                     print (self.getCurrentTime(),'getFundNav5', fund_code,fund_url,e )
+                try:
+                    mySQL.insertData('fund_nav_currency', result)
+                    print (self.getCurrentTime(),'fund_nav_currency',str(i)+'/'+str(records),result['fund_code'],result['the_date'],result['profit_per_units'],result['profit_rate'],result['buy_state'],result['sell_state'] )
+                except  Exception as e:
+                    print (self.getCurrentTime(),'getFundNav6', fund_code,fund_url,e )
+            else :
+                pass
+            # if i>=1:
+            #     break
+        print (self.getCurrentTime(),'getFundNav',result['fund_code'],'共',str(i*page)+'/'+str(records),'行数保存成功'   )
+        return result
+
  
 class PyMySQL:
     # 获取当前时间
@@ -291,79 +360,90 @@ class FundSpiders():
              res = getURL(fund_url)
              #获取历史净值的总记录数
              records= (res.text.strip('var apidata=').strip('{;}').split(',')[1].strip('records:'))
+             fund_url='http://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz&code='+str(fund_code).zfill(6) +'&page=1&per='+records
+             res = getURL(fund_url)             
+             pages=(res.text.strip('var apidata=').strip('{;}').split(',')[2].strip('pages:'))
+             print(pages)
+             mypages=list(range(1,int(pages)+1)) 
+             print(mypages)
+             for mypage in mypages:
+
+                 print('获取基金代码'+str(fund_code)+'第'+str(mypage)+'页')
+                 getFundNavCore(self,mypage,int(records),fund_code,fund_url)
+                 
              #print(res.text.strip('var apidata=').strip('{;}').split(','))
              #print (records)
         except  Exception as e:
             print (self.getCurrentTime(),'getFundNav1', fund_code,fund_url,e )
-        try:
-            #根据基金代码和总记录数，一次返回所有历史净值
-            fund_nav='http://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz&code='+str(fund_code).zfill(6) +'&page=1&per='+records
-            res = getURL(fund_nav)
-            soup = BeautifulSoup(res.text, 'html.parser')
-        except  Exception as e:
-            print (self.getCurrentTime(),'getFundNav2', fund_code,fund_url,e )
+        # try:
+        #     #根据基金代码和总记录数，一次返回所有历史净值
+        #     fund_nav='http://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz&code='+str(fund_code).zfill(6) +'&page=1&per='+records
+        #     res = getURL(fund_nav)
+        #     soup = BeautifulSoup(res.text, 'html.parser')
+        # except  Exception as e:
+        #     print (self.getCurrentTime(),'getFundNav2', fund_code,fund_url,e )
  
-        result={}
-        result['fund_code']=fund_code
-        tables = soup.findAll('table')
-        tab = tables[0]
-        i=0
-        #先用本办法，解析表格，逐行逐单元格获取净值数据
-        for tr in tab.findAll('tr'):
-            #跳过表头；获取净值、累计净值和日收益率数据 如果列数为7，可以判断为一般基金。当然也可以通过标题或者基金类型参数来判断，待后续优化
-            if tr.findAll('td') and len((tr.findAll('td')))==7 :
-                i=i+1
-                try:
-                     result['the_date']= (tr.select('td:nth-of-type(1)')[0].getText().strip() )
-                     result['nav']= (tr.select('td:nth-of-type(2)')[0].getText().strip() )
-                     result['add_nav']= (tr.select('td:nth-of-type(3)')[0].getText().strip() )
-                     result['nav_chg_rate']= (tr.select('td:nth-of-type(4)')[0].getText().strip() )
-                     result['buy_state']= (tr.select('td:nth-of-type(5)')[0].getText().strip() )
-                     result['sell_state']= tr.select('td:nth-of-type(6)')[0].getText().strip()
-                     result['div_record']= tr.select('td:nth-of-type(7)')[0].getText().strip().strip('\'')
-                     #print (self.getCurrentTime(),i,result['fund_code'],result['the_date'],result['nav'],result['add_nav'],result['nav_chg_rate'],result['buy_state'],result['sell_state'] )
-                except  Exception as e:
-                     print (self.getCurrentTime(),'getFundNav3', fund_code,fund_url,e )
-                try:
-                    mySQL.insertData('fund_nav', result)
-                    print (self.getCurrentTime(),'fund_nav',str(i)+'/'+str(records),result['fund_code'],result['the_date'],result['nav'],result['add_nav'],result['nav_chg_rate'],result['buy_state'],result['sell_state'],result['div_record'] )
-                except  Exception as e:
-                    print (self.getCurrentTime(),'getFundNav4', fund_code,fund_url,e )
-            #如果是货币基金，获取万份收益和7日年化利率
-            elif  tr.findAll('td') and len((tr.findAll('td')))==6:
-                i=i+1
-                try:
-                     result['the_date']= (tr.select('td:nth-of-type(1)')[0].getText().strip() )
-                     #result['nav']=1
-                     result['profit_per_units']= (tr.select('td:nth-of-type(2)')[0].getText().strip() )
-                     result['profit_rate']= (tr.select('td:nth-of-type(3)')[0].getText().strip() )
-                     result['buy_state']= (tr.select('td:nth-of-type(4)')[0].getText().strip() )
-                     result['sell_state']= (tr.select('td:nth-of-type(5)')[0].getText().strip() )
-                     result['div_record']= (tr.select('td:nth-of-type(6)')[0].getText().strip() )
-                     #print (self.getCurrentTime(),i,result['fund_code'],result['the_date'],result['nav'],result['add_nav'],result['nav_chg_rate'],result['buy_state'],result['sell_state'] )
-                except  Exception as e:
-                     print (self.getCurrentTime(),'getFundNav5', fund_code,fund_url,e )
-                try:
-                    mySQL.insertData('fund_nav_currency', result)
-                    print (self.getCurrentTime(),'fund_nav_currency',str(i)+'/'+str(records),result['fund_code'],result['the_date'],result['profit_per_units'],result['profit_rate'],result['buy_state'],result['sell_state'] )
-                except  Exception as e:
-                    print (self.getCurrentTime(),'getFundNav6', fund_code,fund_url,e )
-            else :
-                pass
-            # if i>=1:
-            #     break
-        print (self.getCurrentTime(),'getFundNav',result['fund_code'],'共',str(i)+'/'+str(records),'行数保存成功'   )
+        # result={}
+        # result['fund_code']=fund_code
+        # tables = soup.findAll('table')
+        # tab = tables[0]
+        # i=0
+        # #先用本办法，解析表格，逐行逐单元格获取净值数据
+        # for tr in tab.findAll('tr'):
+        #     #跳过表头；获取净值、累计净值和日收益率数据 如果列数为7，可以判断为一般基金。当然也可以通过标题或者基金类型参数来判断，待后续优化
+        #     if tr.findAll('td') and len((tr.findAll('td')))==7 :
+        #         i=i+1
+        #         try:
+        #              result['the_date']= (tr.select('td:nth-of-type(1)')[0].getText().strip() )
+        #              result['nav']= (tr.select('td:nth-of-type(2)')[0].getText().strip() )
+        #              result['add_nav']= (tr.select('td:nth-of-type(3)')[0].getText().strip() )
+        #              result['nav_chg_rate']= (tr.select('td:nth-of-type(4)')[0].getText().strip() )
+        #              result['buy_state']= (tr.select('td:nth-of-type(5)')[0].getText().strip() )
+        #              result['sell_state']= tr.select('td:nth-of-type(6)')[0].getText().strip()
+        #              result['div_record']= tr.select('td:nth-of-type(7)')[0].getText().strip().strip('\'')
+        #              #print (self.getCurrentTime(),i,result['fund_code'],result['the_date'],result['nav'],result['add_nav'],result['nav_chg_rate'],result['buy_state'],result['sell_state'] )
+        #         except  Exception as e:
+        #              print (self.getCurrentTime(),'getFundNav3', fund_code,fund_url,e )
+        #         try:
+        #             mySQL.insertData('fund_nav', result)
+        #             print (self.getCurrentTime(),'fund_nav',str(i)+'/'+str(records),result['fund_code'],result['the_date'],result['nav'],result['add_nav'],result['nav_chg_rate'],result['buy_state'],result['sell_state'],result['div_record'] )
+        #         except  Exception as e:
+        #             print (self.getCurrentTime(),'getFundNav4', fund_code,fund_url,e )
+        #     #如果是货币基金，获取万份收益和7日年化利率
+        #     elif  tr.findAll('td') and len((tr.findAll('td')))==6:
+        #         i=i+1
+        #         try:
+        #              result['the_date']= (tr.select('td:nth-of-type(1)')[0].getText().strip() )
+        #              #result['nav']=1
+        #              result['profit_per_units']= (tr.select('td:nth-of-type(2)')[0].getText().strip() )
+        #              result['profit_rate']= (tr.select('td:nth-of-type(3)')[0].getText().strip() )
+        #              result['buy_state']= (tr.select('td:nth-of-type(4)')[0].getText().strip() )
+        #              result['sell_state']= (tr.select('td:nth-of-type(5)')[0].getText().strip() )
+        #              result['div_record']= (tr.select('td:nth-of-type(6)')[0].getText().strip() )
+        #              #print (self.getCurrentTime(),i,result['fund_code'],result['the_date'],result['nav'],result['add_nav'],result['nav_chg_rate'],result['buy_state'],result['sell_state'] )
+        #         except  Exception as e:
+        #              print (self.getCurrentTime(),'getFundNav5', fund_code,fund_url,e )
+        #         try:
+        #             mySQL.insertData('fund_nav_currency', result)
+        #             print (self.getCurrentTime(),'fund_nav_currency',str(i)+'/'+str(records),result['fund_code'],result['the_date'],result['profit_per_units'],result['profit_rate'],result['buy_state'],result['sell_state'] )
+        #         except  Exception as e:
+        #             print (self.getCurrentTime(),'getFundNav6', fund_code,fund_url,e )
+        #     else :
+        #         pass
+        #     # if i>=1:
+        #     #     break
+        # print (self.getCurrentTime(),'getFundNav',result['fund_code'],'共',str(i)+'/'+str(records),'行数保存成功'   )
  
-        return result
- 
- 
+        # return result
+     
+    
  
  
 def main():
     global mySQL, sleep_time, isproxy, proxy, header
     mySQL = PyMySQL()
     fundSpiders=FundSpiders()
-    mySQL._init_('localhost', 'root', '123456', 'invest')
+    mySQL._init_('localhost', 'root', 'lixz', 'invest')
     isproxy = 0  # 如需要使用代理，改为1，并设置代理IP参数 proxy
     proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     header = randHeader()
