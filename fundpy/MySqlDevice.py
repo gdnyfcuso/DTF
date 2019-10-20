@@ -7,6 +7,7 @@ import pymysql
 import os
 import pandas as pd
 import re
+from datetime import datetime
 
 class PyMySQL:
     # 获取当前时间
@@ -80,8 +81,8 @@ class PyMySQL:
 def getCurrentTime():
         # 获取当前时间
         return time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time()))   
-def cnav(fundlist):
-    dAmount=1000
+def cnav(fundlist,fundCode):
+    dAmount=10
     dAmountList=[]
     dFenEList=[]
     for myfund in fundlist:
@@ -93,8 +94,18 @@ def cnav(fundlist):
         totalFenAmount=sum(dFenEList)
         zsy=totalFenAmount*nav-ztotalAmount
         SyRate=zsy/ztotalAmount
-        print('当前时间：'+the_date+'净值：'+str(nav)+"\n总投入："+str(ztotalAmount)+"总收益："+str(zsy)+"总收益率："+str(SyRate*100)+"%")
-
+        startTime=datetime.strptime(fundlist[0][0],' %Y-%m-%d')
+        currentTime=datetime.strptime(the_date,' %Y-%m-%d')
+        tS=(currentTime-startTime).total_seconds()
+        print('##################################')
+        if tS>0:
+           years=round(tS/(365*24*60*60),5)
+           print('年化收益：'+str(round((SyRate/years),4)*100)+'%')
+        print('当前市值:'+str(round(totalFenAmount*nav,2)))
+        print('总期数:'+str(len(dAmountList)))
+        print('基金代码：'+fundCode)
+        print('当前时间：'+the_date+'\n净值：'+str(nav)+"\n总投入："+str(ztotalAmount)+"\n总收益："+str(round(zsy,4))+"\n总收益率："+str(round(SyRate*100,4))+"%")
+        print('##################################')
 def main():
     global mySQL, sleep_time, isproxy, proxy, header
     mySQL = PyMySQL()
@@ -108,8 +119,9 @@ def main():
     for fund in funds:
          try:
             res= mySQL.searchFundNavData(fund)
-            print('当前基金：'+str(fund))
-            cnav(res)
+            print('##################################')
+            cnav(res,str(fund).zfill(6))
+            print('##################################')
             # for fundCode in res:
             #         the_date=fundCode[0]
             #         nav=fundCode[1]
