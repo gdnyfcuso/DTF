@@ -443,7 +443,7 @@ def main():
     global mySQL, sleep_time, isproxy, proxy, header
     mySQL = PyMySQL()
     fundSpiders=FundSpiders()
-    mySQL._init_('localhost', 'root', 'lixz', 'invest')
+    mySQL._init_('localhost', 'root', '123456', 'invest')
     isproxy = 0  # 如需要使用代理，改为1，并设置代理IP参数 proxy
     proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     header = randHeader()
