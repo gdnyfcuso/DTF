@@ -81,10 +81,12 @@ class PyMySQL:
 def getCurrentTime():
         # 获取当前时间
         return time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time()))   
+yRateList=[]
 def cnav(fundlist,fundCode):
     dAmount=10
     dAmountList=[]
     dFenEList=[]
+    yRate=0.0
     for myfund in fundlist:
         the_date=myfund[0]
         nav=myfund[1]
@@ -98,18 +100,24 @@ def cnav(fundlist,fundCode):
         currentTime=datetime.strptime(the_date,' %Y-%m-%d')
         tS=(currentTime-startTime).total_seconds()
         print('##################################')
+
         if tS>0:
            years=round(tS/(365*24*60*60),5)
-           print('年化收益：'+str(round((SyRate/years),4)*100)+'%')
+           if years>1:
+              yRate=round((SyRate/years),4)*100
+              print('年化收益：'+str(yRate)+'%')
         print('当前市值:'+str(round(totalFenAmount*nav,2)))
         print('总期数:'+str(len(dAmountList)))
         print('基金代码：'+fundCode)
         print('当前时间：'+the_date+'\n净值：'+str(nav)+"\n总投入："+str(ztotalAmount)+"\n总收益："+str(round(zsy,4))+"\n总收益率："+str(round(SyRate*100,4))+"%")
         print('##################################')
+    if yRate>0.0:
+       yRateList.append((yRate,fundCode))
+    
 def main():
     global mySQL, sleep_time, isproxy, proxy, header
     mySQL = PyMySQL()
-    mySQL._init_('localhost', 'root', '123456', 'invest')
+    mySQL._init_('localhost', 'root', 'lixz', 'invest')
     isproxy = 0  # 如需要使用代理，改为1，并设置代理IP参数 proxy
     proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     sleep_time = 0.1
@@ -128,6 +136,7 @@ def main():
             #         print('查询数据：\n代码:'+ str(fund).zfill(6)+'\n时间: '+the_date+'\n净值:'+str(nav))
          except Exception as e:
             print (getCurrentTime(),'main', fund,e )
+    print(yRateList.sort())
  
 if __name__ == "__main__":
     main()
