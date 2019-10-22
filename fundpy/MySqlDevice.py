@@ -73,7 +73,7 @@ class PyMySQL:
         '''
         从csv文件中获取基金代码清单（可从wind或者其他财经网站导出）
         '''
-        file_path=os.path.join(os.getcwd(),'fund.csv')
+        file_path=os.path.join(os.getcwd(),'fund_History.csv')
         fund_code = pd.read_csv(filepath_or_buffer=file_path, encoding='utf-8')
         Code=fund_code.trade_code
         #print ( Code)
@@ -136,7 +136,10 @@ def main():
             #         print('查询数据：\n代码:'+ str(fund).zfill(6)+'\n时间: '+the_date+'\n净值:'+str(nav))
          except Exception as e:
             print (getCurrentTime(),'main', fund,e )
-    print(yRateList.sort())
+    content= sorted(yRateList,reverse=false)
+    with open('YR.csv','W') as YR:
+        YR.write(str(content))
+    print(content)
  
 if __name__ == "__main__":
     main()
