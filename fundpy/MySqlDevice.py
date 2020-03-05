@@ -4,8 +4,10 @@ from bs4 import BeautifulSoup
 import time
 import random
 import pymysql
-import os
+import os,sys
 import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import re
 from datetime import datetime
 
@@ -54,7 +56,7 @@ class PyMySQL:
             return 0
     def searchFundNavData(self, fund_code):
         try:
-            sql = 'SELECT the_date,nav FROM invest.fund_nav where fund_code=%s order by the_date asc'%(fund_code)
+            sql = 'SELECT date,nav FROM invest.fund_nav where fund_code=%s order by date asc'%(fund_code)
             #print (sql)
             try:
                 self.cur.execute(sql)
@@ -87,6 +89,9 @@ def cnav(fundlist,fundCode):
     dAmountList=[]
     dFenEList=[]
     yRate=0.0
+    ztotalAmount=0.0
+    zsy=0.0
+    SyRate=0.0
     for myfund in fundlist:
         the_date=myfund[0]
         nav=myfund[1]
@@ -112,12 +117,65 @@ def cnav(fundlist,fundCode):
         print('当前时间：'+the_date+'\n净值：'+str(nav)+"\n总投入："+str(ztotalAmount)+"\n总收益："+str(round(zsy,4))+"\n总收益率："+str(round(SyRate*100,4))+"%")
         print('##################################')
     if yRate>0.0:
-       yRateList.append((yRate,fundCode))
-    
+       yRateList.append((yRate,fundCode,str(ztotalAmount),str(round(zsy,4)),str(round(SyRate*100,4))))
+def fund_dingtou(df100,fundcode):
+    c_rate=2.0/1000
+    #start_date='2019-01-01'
+    start_date=pd.to_datetime('2019-01-01',format='%Y-%m-%d') 
+    #end_date='2020-02-28' 
+    end_date=pd.to_datetime('2020-02-28',format='%Y-%m-%d')
+    df11=df100.sort_index();
+    df=df11[(df11.index>=start_date)&(df11.index<=end_date)]
+    print(df)
+
+    df['投入资金']=300;
+    df['累计投入资金']=round(df['投入资金'].cumsum(),3)
+    df['买入股票数量']=round(df['投入资金']*(1-c_rate)/df['close'],2)
+    df['累计股票数量']=round(df['买入股票数量'].cumsum(),2)
+    df['累计股票市值']=round(df['累计股票数量']*df['close'],2)
+
+    df['平均股票成本']=round(df['累计投入资金']/df['累计股票市值'],2)
+    df['盈亏']=round(df['累计股票市值']/df['累计投入资金']-1,2)
+    df['盈亏多少钱']=round(df['累计股票市值']-df['累计投入资金'],2)
+
+    print(df)
+
+    cols=['close','累计投入资金','累计股票数量','累计股票市值','平均股票成本','盈亏','盈亏多少钱']
+    df=df[cols]
+
+    print(df)
+
+    rss=sys.path[0]+ '\\funds\\'
+    tocsvpath= rss+fundcode+"D.csv";
+
+    df.to_csv(tocsvpath,encoding='gbk')
+
+
+    df0= df.sort_values(by=['盈亏'])
+    df1=df0[-1:]
+    print(df0)
+    print(df1)
+
+
+    df2= df0.sort_values(by=['盈亏多少钱'])
+    df3=df2[-1:]
+    print(df3)
+
+    mpl.style.use('seaborn-whitegrid');
+
+    df['盈亏多少钱'].plot();
+
+    plt.show()
+    df['累计投入资金'].plot();
+    df['累计股票市值'].plot();
+    plt.show();
+
+    return df3;
+
 def main():
     global mySQL, sleep_time, isproxy, proxy, header
     mySQL = PyMySQL()
-    mySQL._init_('localhost', 'root', 'lixz', 'invest')
+    mySQL._init_('localhost', 'root', '123456', 'invest')
     isproxy = 0  # 如需要使用代理，改为1，并设置代理IP参数 proxy
     proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     sleep_time = 0.1
@@ -127,18 +185,25 @@ def main():
     for fund in funds:
          try:
             res= mySQL.searchFundNavData(fund)
+            # clos=['date','close']
+            clos=[]
+
+            pdlist=list(res);
+            pd0=pd.DataFrame([],clos)
+            df=pd0.append(pdlist)
+            df.columns=['date','close']
+            df.set_index(["date"], inplace=True)
+            print(df)
+            
             print('##################################')
-            cnav(res,str(fund).zfill(6))
+            df1= fund_dingtou(df,str(fund).zfill(6))
+            print(df1)
             print('##################################')
-            # for fundCode in res:
-            #         the_date=fundCode[0]
-            #         nav=fundCode[1]
-            #         print('查询数据：\n代码:'+ str(fund).zfill(6)+'\n时间: '+the_date+'\n净值:'+str(nav))
          except Exception as e:
             print (getCurrentTime(),'main', fund,e )
-    content= sorted(yRateList,reverse=false)
-    with open('YR.csv','W') as YR:
-        YR.write(str(content))
+    content= sorted(yRateList,reverse=False)
+    with open('test.txt','a') as file_test:
+        file_test.write(str(content))
     print(content)
  
 if __name__ == "__main__":

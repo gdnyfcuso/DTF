@@ -341,7 +341,7 @@ class FundSpiders():
         #print (self.getCurrentTime(),'getFundManagers',result['fund_code'],'共',str(i)+':','行数保存成功'   )
  
         return result
- 
+
     def getFundNav(self,fund_code):
         '''
         获取基金净值数据，因为基金列表中是所有基金代码，一般净值型基金和货币基金数据稍有差异，下面根据数据表格长度判断是一般基金还是货币基金，分别入库
@@ -443,7 +443,7 @@ def main():
     global mySQL, sleep_time, isproxy, proxy, header
     mySQL = PyMySQL()
     fundSpiders=FundSpiders()
-    mySQL._init_('localhost', 'root', 'lixz', 'invest')
+    mySQL._init_('localhost', 'root', '123456', 'invest')
     isproxy = 0  # 如需要使用代理，改为1，并设置代理IP参数 proxy
     proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     header = randHeader()
