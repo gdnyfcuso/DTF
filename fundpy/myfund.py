@@ -9,16 +9,19 @@
 # 使用库：requests、BeautifulSoup4、pymysql,pandas
 # 作者：yuzhucu
 '''
+import datetime
+import os
+import random
+import re
+import time
+
+import pandas as pd
+import pymysql
 #############################################################################
 import requests
 from bs4 import BeautifulSoup
-import time
-import random
-import pymysql
-import os
-import pandas as pd
-import re
- 
+
+
 def randHeader():
     '''
     随机生成User-Agent
@@ -160,8 +163,75 @@ def getFundNavCore(self,page,records,fund_code,fund_url):
         print (self.getCurrentTime(),'getFundNav',result['fund_code'],'共',str(i*page)+'/'+str(records),'行数保存成功'   )
         return result
 
+class workDays():
+    def __init__(self, start_date, end_date, days_off=None):
+        """days_off:休息日,默认周六日, 以0(星期一)开始,到6(星期天)结束, 传入tupple
+        没有包含法定节假日,
+        """
+        self.start_date = start_date
+        self.end_date = end_date
+        self.days_off = days_off
+        if self.start_date>self.end_date:
+            self.start_date,self.end_date = self.end_date, self.start_date
+        if days_off is None:
+            self.days_off = 5,6
+        # 每周工作日列表
+        self.days_work = [x for x in range(7) if x not in self.days_off]
+
+    def workDays(self):
+        """实现工作日的 iter, 从start_date 到 end_date , 如果在工作日内,yield 日期
+        """
+        # 还没排除法定节假日
+        tag_date = self.start_date
+        while True:
+            if tag_date > self.end_date:
+                break
+            if tag_date.weekday() in self.days_work:
+                yield tag_date
+            tag_date += datetime.timedelta(days=1)
+
+    def daysCount(self):
+        """工作日统计,返回数字"""
+        return len(list(self.workDays()))
+
+    def weeksCount(self, day_start=0):
+        """统计所有跨越的周数,返回数字
+        默认周从星期一开始计算
+        """
+        day_nextweek = self.start_date
+        while True:
+            if day_nextweek.weekday() == day_start:
+                break
+            day_nextweek += datetime.timedelta(days=1)
+        # 区间在一周内
+        if day_nextweek > self.end_date:
+            return 1
+        weeks = ((self.end_date - day_nextweek).days + 1)/7
+        weeks = int(weeks)
+        if ((self.end_date - day_nextweek).days + 1)%7:
+            weeks += 1
+        if self.start_date < day_nextweek:
+            weeks += 1
+        return weeks
  
 class PyMySQL:
+    def GetFundLastDate(self,fundcode,tablename="fund_nav",column="the_date"):
+        try:
+            sql = 'SELECT  '+column+' FROM invest.'+tablename+' where fund_code=%s order by '%(fundcode)+column+' desc limit 1'
+            try:
+                self.cur.execute(sql)
+                result= self.cur.fetchall()
+                return result
+                # 判断是否执行成功
+                
+            except Exception as e:
+                # 发生错误时回滚
+                print (self.getCurrentTime(), u"Data Select Failed: %s" % (e))
+                return 0
+        except Exception as e:
+            print (self.getCurrentTime(), u"MySQLdb Error: %s" % (e))
+            return 0
+
     # 获取当前时间
     def getCurrentTime(self):
         return time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time()))
@@ -453,11 +523,43 @@ def main():
     #fundSpiders.getFundManagers('000001')
     for fund in funds:
          try:
-             fundSpiders.getFundInfo(fund)
-             fundSpiders.getFundManagers(fund)
-             fundSpiders.getFundNav(fund)
+             print(fund)
+
+             ee=mySQL.GetFundLastDate(fund,"fund_managers_chg","end_date")
+             if(len(ee)!=1): continue
+             print(ee[0][0])
+             ed=ee[0][0].replace(" ", "")
+             if(ed!="至今"):continue
+
+             lastdate=mySQL.GetFundLastDate(fund)
+             if(len(lastdate)!=1):
+                 lastdate=mySQL.GetFundLastDate(fund,"fund_nav_currency")
+             if(len(lastdate)==1):
+                #print(lastdate[0][0])
+                d=lastdate[0][0]
+                startdatetime=datetime.datetime(d.year, d.month, d.day)
+                work = workDays(startdatetime,datetime.datetime.now())
+                ##print(work.daysCount())
+                days=int(work.daysCount())-2
+                if(days>20):
+                   mypages=list(range(1,int(days)))
+                   for i in mypages:
+                    getFundNavCore(mySQL,i+1,1,fund,None)    
+                elif days<1:
+                    pass
+                else:
+                    getFundNavCore(mySQL,1,days,fund,None)
+             else:
+                fundSpiders.getFundInfo(fund)
+                fundSpiders.getFundManagers(fund)
+                fundSpiders.getFundNav(fund)
+             
          except Exception as e:
             print (getCurrentTime(),'main', fund,e )
+
+
+
+    
  
 if __name__ == "__main__":
     main()

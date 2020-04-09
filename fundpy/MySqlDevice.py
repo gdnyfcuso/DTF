@@ -56,7 +56,7 @@ class PyMySQL:
             return 0
     def searchFundNavData(self, fund_code):
         try:
-            sql = 'SELECT date,nav FROM invest.fund_nav where fund_code=%s order by date asc'%(fund_code)
+            sql = 'SELECT the_date,nav FROM invest.fund_nav where fund_code=%s order by the_date asc'%(fund_code)
             #print (sql)
             try:
                 self.cur.execute(sql)
@@ -71,6 +71,23 @@ class PyMySQL:
         except Exception as e:
             print (self.getCurrentTime(), u"MySQLdb Error: %s" % (e))
             return 0
+    def getfundcodesFrommysql(self):
+        try:
+            sql = 'SELECT fund_code FROM invest.fund_info where fund_type=\' 混合型\' or fund_type=\'股票指数\' or fund_type=fund_type=\' 股票型\''
+            #print (sql)
+            try:
+                self.cur.execute(sql)
+                result= self.cur.fetchall()
+                return result
+                # 判断是否执行成功
+                
+            except Exception as e:
+                # 发生错误时回滚
+                print (self.getCurrentTime(), u"Data Select Failed: %s" % (e))
+                return 0
+        except Exception as e:
+            print (self.getCurrentTime(), u"MySQLdb Error: %s" % (e))
+            return 0    
     def getFundCodesFromCsv(self):
         '''
         从csv文件中获取基金代码清单（可从wind或者其他财经网站导出）
@@ -121,7 +138,7 @@ def cnav(fundlist,fundCode):
 def fund_dingtou(df100,fundcode):
     c_rate=2.0/1000
     #start_date='2019-01-01'
-    start_date=pd.to_datetime('2019-01-01',format='%Y-%m-%d') 
+    start_date=pd.to_datetime('2010-01-01',format='%Y-%m-%d') 
     #end_date='2020-02-28' 
     end_date=pd.to_datetime('2020-02-28',format='%Y-%m-%d')
     df11=df100.sort_index();
@@ -165,10 +182,10 @@ def fund_dingtou(df100,fundcode):
 
     df['盈亏多少钱'].plot();
 
-    plt.show()
+    #plt.show()
     df['累计投入资金'].plot();
     df['累计股票市值'].plot();
-    plt.show();
+    #plt.show();
 
     return df3;
 
@@ -180,8 +197,10 @@ def main():
     proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     sleep_time = 0.1
     #fundSpiders.getFundJbgk('000001')
-    funds=mySQL.getFundCodesFromCsv()
-    #fundSpiders.getFundManagers('000001')
+    # funds=mySQL.getFundCodesFromCsv()
+    funds=mySQL.getfundcodesFrommysql()
+    cols1=['close','累计投入资金','累计股票数量','累计股票市值','平均股票成本','盈亏','盈亏多少钱','code']
+    df5=pd.DataFrame([], columns=cols1);
     for fund in funds:
          try:
             res= mySQL.searchFundNavData(fund)
@@ -197,14 +216,23 @@ def main():
             
             print('##################################')
             df1= fund_dingtou(df,str(fund).zfill(6))
+            df1['code']=str(fund).zfill(6);
             print(df1)
+            df5=df5.append(df1[0:]);
             print('##################################')
          except Exception as e:
             print (getCurrentTime(),'main', fund,e )
-    content= sorted(yRateList,reverse=False)
-    with open('test.txt','a') as file_test:
-        file_test.write(str(content))
-    print(content)
+    print(df5);
+    # rss=sys.path[0]+ '\\zwdat\\cn\\day_D\\' 
+    rss=sys.path[0]+ '\\funds\\'
+    tocsvpath= rss+"DD.csv";
+
+    df5.to_csv(tocsvpath,encoding='gbk')
+    
+    # content= sorted(yRateList,reverse=False)
+    # with open('test.txt','a') as file_test:
+    #     file_test.write(str(content))
+    # print(content)
  
 if __name__ == "__main__":
     main()

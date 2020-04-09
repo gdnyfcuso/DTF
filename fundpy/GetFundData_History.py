@@ -49,10 +49,10 @@ def getData(myrange, driver, lock, code):
             colum3 = col[3].text # 比率
             colum3 = colum3.replace("%", "")
             print(colum0)
-        with open('allitems.txt', 'ab') as files:
-            items = jjcode + ','+colum0 + ',' + colum1 + ',' + colum2 + ',' + colum3 + '\r\n'
-            items = items.encode('utf-8')
-            files.write(items)
+            with open(jjcode+'.csv', 'ab') as files:
+                items = jjcode + ','+colum0 + ',' + colum1 + ',' + colum2 + ',' + colum3 + '\r\n'
+                items = items.encode('utf-8')
+                files.write(items)
  # 解锁
         lock.release()
 # 开始抓取函数
