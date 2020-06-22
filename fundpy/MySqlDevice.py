@@ -73,7 +73,7 @@ class PyMySQL:
             return 0
     def getfundcodesFrommysql(self):
         try:
-            sql = 'SELECT fund_code FROM invest.fund_info where fund_type=\' 混合型\' or fund_type=\'股票指数\' or fund_type=fund_type=\' 股票型\''
+            sql = 'SELECT fund_code FROM invest.fund_info where fund_type=\' 混合型\' or fund_type=\'股票指数\' or fund_type=\' 股票型\''
             #print (sql)
             try:
                 self.cur.execute(sql)
@@ -192,7 +192,7 @@ def fund_dingtou(df100,fundcode):
 def main():
     global mySQL, sleep_time, isproxy, proxy, header
     mySQL = PyMySQL()
-    mySQL._init_('localhost', 'root', '123456', 'invest')
+    mySQL._init_('localhost', 'root', 'lixz', 'invest')
     isproxy = 0  # 如需要使用代理，改为1，并设置代理IP参数 proxy
     proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     sleep_time = 0.1
@@ -215,8 +215,8 @@ def main():
             print(df)
             
             print('##################################')
-            df1= fund_dingtou(df,str(fund).zfill(6))
-            df1['code']=str(fund).zfill(6);
+            df1= fund_dingtou(df,str(fund[0]).zfill(6))
+            df1['code']=str(fund[0]).zfill(6);
             print(df1)
             df5=df5.append(df1[0:]);
             print('##################################')
