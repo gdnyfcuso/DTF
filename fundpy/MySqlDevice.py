@@ -147,17 +147,17 @@ def fund_dingtou(df100,fundcode):
 
     df['投入资金']=300;
     df['累计投入资金']=round(df['投入资金'].cumsum(),3)
-    df['买入股票数量']=round(df['投入资金']*(1-c_rate)/df['close'],2)
-    df['累计股票数量']=round(df['买入股票数量'].cumsum(),2)
-    df['累计股票市值']=round(df['累计股票数量']*df['close'],2)
+    df['买入基金份额']=round(df['投入资金']*(1-c_rate)/df['close'],2)
+    df['累计基金份额']=round(df['买入基金份额'].cumsum(),2)
+    df['累计基金市值']=round(df['累计基金份额']*df['close'],2)
 
-    df['平均股票成本']=round(df['累计投入资金']/df['累计股票市值'],2)
-    df['盈亏']=round(df['累计股票市值']/df['累计投入资金']-1,2)
-    df['盈亏多少钱']=round(df['累计股票市值']-df['累计投入资金'],2)
+    df['平均基金成本']=round(df['累计投入资金']/df['累计基金市值'],2)
+    df['盈亏']=round(df['累计基金市值']/df['累计投入资金']-1,2)
+    df['盈亏多少钱']=round(df['累计基金市值']-df['累计投入资金'],2)
 
     print(df)
 
-    cols=['close','累计投入资金','累计股票数量','累计股票市值','平均股票成本','盈亏','盈亏多少钱']
+    cols=['close','累计投入资金','累计基金份额','累计基金市值','平均基金成本','盈亏','盈亏多少钱']
     df=df[cols]
 
     print(df)
@@ -184,7 +184,7 @@ def fund_dingtou(df100,fundcode):
 
     #plt.show()
     df['累计投入资金'].plot();
-    df['累计股票市值'].plot();
+    df['累计基金市值'].plot();
     #plt.show();
 
     return df3;
@@ -199,7 +199,7 @@ def main():
     #fundSpiders.getFundJbgk('000001')
     # funds=mySQL.getFundCodesFromCsv()
     funds=mySQL.getfundcodesFrommysql()
-    cols1=['close','累计投入资金','累计股票数量','累计股票市值','平均股票成本','盈亏','盈亏多少钱','code']
+    cols1=['close','累计投入资金','累计基金份额','累计基金市值','平均基金成本','盈亏','盈亏多少钱','code']
     df5=pd.DataFrame([], columns=cols1);
     for fund in funds:
          try:
