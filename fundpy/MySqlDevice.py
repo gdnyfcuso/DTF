@@ -73,7 +73,7 @@ class PyMySQL:
             return 0
     def getfundcodesFrommysql(self):
         try:
-            sql = 'SELECT fund_code FROM invest.fund_info where fund_type=\' 混合型\' or fund_type=\'股票指数\' or fund_type=\' 股票型\''
+            sql = 'SELECT fund_code FROM invest.fund_info where fund_type=\' 混合型\' or fund_type=\' 股票指数\' or fund_type=\' 联接基金\'  or fund_type=\' QDII\'  or fund_type=\' QDII-指数\' or fund_type=\' 股票型\''
             #print (sql)
             try:
                 self.cur.execute(sql)
@@ -199,6 +199,8 @@ def main():
     #fundSpiders.getFundJbgk('000001')
     # funds=mySQL.getFundCodesFromCsv()
     funds=mySQL.getfundcodesFrommysql()
+    print("将要计算的基本代码如下：")
+    print(funds)
     cols1=['close','累计投入资金','累计基金份额','累计基金市值','平均基金成本','盈亏','盈亏多少钱','code']
     df5=pd.DataFrame([], columns=cols1);
     for fund in funds:
