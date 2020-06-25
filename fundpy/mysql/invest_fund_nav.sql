@@ -23,9 +23,9 @@ DROP TABLE IF EXISTS `fund_nav`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `fund_nav` (
-  `the_date` varchar(255) NOT NULL,
+  `the_date` date NOT NULL,
   `nav` float(15,8) DEFAULT NULL,
-  `add_nav` float(15,8) DEFAULT NULL,
+  `add_nav` varchar(255) DEFAULT NULL,
   `nav_chg_rate` varchar(255) DEFAULT NULL,
   `buy_state` varchar(255) DEFAULT NULL,
   `sell_state` varchar(255) DEFAULT NULL,
