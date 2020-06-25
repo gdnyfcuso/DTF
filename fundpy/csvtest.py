@@ -20,9 +20,10 @@ def main():
     print(len(fund_code))
     #HGZ= fund_code.loc[fund_code['name'].str.contains('债|货币|理财')==False,['trade_code']]  
     HGZ= fund_code.loc[fund_code['name'].str.contains('股票|指数|混合|联接')==True,['trade_code','name']]  
+    HGZ.set_index(["trade_code"], inplace=True)
     rss=sys.path[0]+ '\\funds\\'
     tocsvpath= rss+"GZHL.csv";
-    HGZ.to_csv(tocsvpath,encoding='gbk')
+    HGZ.to_csv(tocsvpath,encoding='utf-8')
     print(len(HGZ))
     return HGZ
     #print ( Code)
