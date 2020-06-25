@@ -287,7 +287,7 @@ class FundSpiders():
         '''
         file_path=os.path.join(os.getcwd(),'fund.csv')
         fund_code = pd.read_csv(filepath_or_buffer=file_path, encoding='utf-8')
-        HGZ= fund_code.loc[fund_code['name'].str.contains('股票|指数|混合')==True,['trade_code']]  
+        HGZ= fund_code.loc[fund_code['name'].str.contains('股票|指数|混合|联接')==True,['trade_code']]  
         return HGZ.trade_code
  
     def getFundInfo(self,fund_code):
