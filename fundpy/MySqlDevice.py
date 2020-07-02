@@ -9,6 +9,8 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import re
+import math
+import numpy as np
 from datetime import datetime
 
 class PyMySQL:
@@ -56,7 +58,7 @@ class PyMySQL:
             return 0
     def searchFundNavData(self, fund_code):
         try:
-            sql = 'SELECT the_date,nav FROM invest.fund_nav where fund_code=%s order by the_date asc'%(fund_code)
+            sql = 'SELECT the_date,nav,nav_chg_rate FROM invest.fund_nav where fund_code=%s order by the_date asc'%(fund_code)
             #print (sql)
             try:
                 self.cur.execute(sql)
@@ -135,17 +137,18 @@ def cnav(fundlist,fundCode):
         print('##################################')
     if yRate>0.0:
        yRateList.append((yRate,fundCode,str(ztotalAmount),str(round(zsy,4)),str(round(SyRate*100,4))))
-def fund_dingtou(df100,fundcode):
+
+def fund_dingtou(df100,fundcode,initAmount=300,startTime='2016-01-01',endTime='2020-06-28'):
     c_rate=2.0/1000
     #start_date='2019-01-01'
-    start_date=pd.to_datetime('2010-01-01',format='%Y-%m-%d') 
+    start_date=pd.to_datetime(startTime,format='%Y-%m-%d') 
     #end_date='2020-02-28' 
-    end_date=pd.to_datetime('2020-02-28',format='%Y-%m-%d')
+    end_date=pd.to_datetime(endTime,format='%Y-%m-%d')
     df11=df100.sort_index();
     df=df11[(df11.index>=start_date)&(df11.index<=end_date)]
     print(df)
 
-    df['投入资金']=300;
+    df['投入资金']=initAmount;
     df['累计投入资金']=round(df['投入资金'].cumsum(),3)
     df['买入基金份额']=round(df['投入资金']*(1-c_rate)/df['close'],2)
     df['累计基金份额']=round(df['买入基金份额'].cumsum(),2)
@@ -188,6 +191,31 @@ def fund_dingtou(df100,fundcode):
     #plt.show();
 
     return df3;
+def sharpRateOne(df):
+    df['nav_chg_rate']=df['nav_chg_rate'].replace('%','',regex=True)
+    NONE_VIN = (df["nav_chg_rate"].isnull()) | (df["nav_chg_rate"].apply(lambda x: str(x).isspace()))
+    df['nav_chg_rate'] = df[~NONE_VIN]
+    
+    df['nav_chg_rate']=df['nav_chg_rate'].replace(' ','0.0',regex=True)
+    df['nav_chg_rate']=df['nav_chg_rate'].apply(float)
+    mm=np.mean(df['nav_chg_rate'])
+    nn=df['nav_chg_rate'].std()
+    ss=mm-0.01059015326852
+    SR=ss/nn
+    print(SR)
+    SR1=(mm-0.01059015326852)/nn*math.sqrt(252)
+    return SR1/100
+
+def sharpRateTwo(df):
+    
+    NONE_VIN = (df["nav_chg_rate"].isnull()) | (df["nav_chg_rate"].apply(lambda x: str(x).isspace()))
+    df['nav_chg_rate'] = df[~NONE_VIN]
+    
+    df['nav_chg_rate']=df['nav_chg_rate'].replace(' ','0.0',regex=True)
+    df['nav_chg_rate']=df['nav_chg_rate'].apply(float)
+    df1 = df['nav_chg_rate'] - (4/252)
+    return ((df1.mean() * math.sqrt(252))/df1.std())/100
+    
 
 def main():
     global mySQL, sleep_time, isproxy, proxy, header
@@ -196,12 +224,11 @@ def main():
     isproxy = 0  # 如需要使用代理，改为1，并设置代理IP参数 proxy
     proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     sleep_time = 0.1
-    #fundSpiders.getFundJbgk('000001')
-    # funds=mySQL.getFundCodesFromCsv()
+    
     funds=mySQL.getfundcodesFrommysql()
     print("将要计算的基本代码如下：")
     print(funds)
-    cols1=['close','累计投入资金','累计基金份额','累计基金市值','平均基金成本','盈亏','盈亏多少钱','code']
+    cols1=['close','累计投入资金','累计基金份额','累计基金市值','平均基金成本','盈亏','盈亏多少钱','code','夏普比率']
     df5=pd.DataFrame([], columns=cols1);
     for fund in funds:
          try:
@@ -212,13 +239,14 @@ def main():
             pdlist=list(res);
             pd0=pd.DataFrame([],clos)
             df=pd0.append(pdlist)
-            df.columns=['date','close']
+            df.columns=['date','close','nav_chg_rate']
             df.set_index(["date"], inplace=True)
             print(df)
             
             print('##################################')
             df1= fund_dingtou(df,str(fund[0]).zfill(6))
             df1['code']=str(fund[0]).zfill(6);
+            df1['夏普比率']=sharpRateOne(df)
             print(df1)
             df5=df5.append(df1[0:]);
             print('##################################')

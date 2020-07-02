@@ -504,9 +504,6 @@ class FundSpiders():
         # print (self.getCurrentTime(),'getFundNav',result['fund_code'],'共',str(i)+'/'+str(records),'行数保存成功'   )
  
         # return result
-     
-    
- 
  
 def main():
     global mySQL, sleep_time, isproxy, proxy, header
