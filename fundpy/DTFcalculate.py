@@ -12,6 +12,10 @@ import re
 import math
 import numpy as np
 from datetime import datetime
+from  Retracement import RetracementRate
+from numpy import *
+
+import annualVolatility as av
 
 class PyMySQL:
     # 获取当前时间
@@ -56,16 +60,16 @@ class PyMySQL:
         except Exception as e:
             print (self.getCurrentTime(), u"MySQLdb Error: %s" % (e))
             return 0
-    def searchFundNavData(self, fund_code):
+    def searchFundNavData(self, fund_code,startTime,endTime):
         try:
-            sql = 'SELECT the_date,nav,nav_chg_rate FROM invest.fund_nav where fund_code=%s order by the_date asc'%(fund_code)
+            sql = 'SELECT the_date,nav,nav_chg_rate FROM invest.fund_nav where nav_chg_rate is not null and nav_chg_rate <> \'\' and fund_code=%s and  the_date>\'%s\' and the_date<\'%s\' order by the_date asc'%(fund_code,startTime,endTime)
             #print (sql)
             try:
                 self.cur.execute(sql)
                 result= self.cur.fetchall()
                 return result
                 # 判断是否执行成功
-                
+            
             except Exception as e:
                 # 发生错误时回滚
                 print (self.getCurrentTime(), u"Data Select Failed: %s" % (e))
@@ -149,14 +153,15 @@ def fund_dingtou(df100,fundcode,initAmount=300,startTime='2016-01-01',endTime='2
     print(df)
 
     df['投入资金']=initAmount;
-    df['累计投入资金']=round(df['投入资金'].cumsum(),3)
-    df['买入基金份额']=round(df['投入资金']*(1-c_rate)/df['close'],2)
-    df['累计基金份额']=round(df['买入基金份额'].cumsum(),2)
-    df['累计基金市值']=round(df['累计基金份额']*df['close'],2)
+    df['累计投入资金']=round(df['投入资金'].cumsum(),5)
+    df['买入基金份额']=round(df['投入资金']*(1-c_rate)/df['close'],5)
+    df['累计基金份额']=round(df['买入基金份额'].cumsum(),5)
+    df['累计基金市值']=round(df['累计基金份额']*df['close'],5)
 
-    df['平均基金成本']=round(df['累计投入资金']/df['累计基金市值'],2)
-    df['盈亏']=round(df['累计基金市值']/df['累计投入资金']-1,2)
-    df['盈亏多少钱']=round(df['累计基金市值']-df['累计投入资金'],2)
+    df['平均基金成本']=round(df['累计投入资金']/df['累计基金市值'],5)
+    df['盈亏']=round(df['累计基金市值']/df['累计投入资金']-1,5)
+    df['盈亏多少钱']=round(df['累计基金市值']-df['累计投入资金'],5)
+    df['定投夏普比率']=''
 
     print(df)
 
@@ -169,7 +174,6 @@ def fund_dingtou(df100,fundcode,initAmount=300,startTime='2016-01-01',endTime='2
     tocsvpath= rss+fundcode+"D.csv";
 
     df.to_csv(tocsvpath,encoding='gbk')
-
 
     df0= df.sort_values(by=['盈亏'])
     df1=df0[-1:]
@@ -189,33 +193,57 @@ def fund_dingtou(df100,fundcode,initAmount=300,startTime='2016-01-01',endTime='2
     df['累计投入资金'].plot();
     df['累计基金市值'].plot();
     #plt.show();
-
     return df3;
 def sharpRateOne(df):
-    df['nav_chg_rate']=df['nav_chg_rate'].replace('%','',regex=True)
-    NONE_VIN = (df["nav_chg_rate"].isnull()) | (df["nav_chg_rate"].apply(lambda x: str(x).isspace()))
-    df['nav_chg_rate'] = df[~NONE_VIN]
-    
-    df['nav_chg_rate']=df['nav_chg_rate'].replace(' ','0.0',regex=True)
-    df['nav_chg_rate']=df['nav_chg_rate'].apply(float)
+    #print(df)
+    df=preData(df)
     mm=np.mean(df['nav_chg_rate'])
     nn=df['nav_chg_rate'].std()
     ss=mm-0.01059015326852
     SR=ss/nn
-    print(SR)
-    SR1=(mm-0.01059015326852)/nn*math.sqrt(252)
-    return SR1/100
+    #print(SR)
+    SR1=SR*math.sqrt(252)
+    return SR1
 
 def sharpRateTwo(df):
-    
-    NONE_VIN = (df["nav_chg_rate"].isnull()) | (df["nav_chg_rate"].apply(lambda x: str(x).isspace()))
-    df['nav_chg_rate'] = df[~NONE_VIN]
-    
-    df['nav_chg_rate']=df['nav_chg_rate'].replace(' ','0.0',regex=True)
-    df['nav_chg_rate']=df['nav_chg_rate'].apply(float)
+    df=preData(df)
     df1 = df['nav_chg_rate'] - (4/252)
-    return ((df1.mean() * math.sqrt(252))/df1.std())/100
-    
+    return ((df1.mean() * math.sqrt(252))/df1.std())
+def dingTouSharpRate(df):
+    print(df['盈亏'])
+    df1 = df['盈亏'] - (0.04/252)
+    return ((df1.mean() * math.sqrt(252))/df1.std())
+def sharpe_rate(rets,rfRate=0.04,ntim=252):
+    '''
+    sharpe_rate(rets,rfRate,ntim=252):
+        计算夏普指数
+    【输入】
+    	rets (list): 收盘价（一天一条）
+      rfRate (int): 无风险收益利润
+      ntim (int): 交易时间（按天、小时、等计数）
+         采用小时(60分钟)线数据，ntim= 252* 6.5 = 1638.
+    【输出】
+        夏普指数数值
+        '''
+    rsharp= 0.0
+    if len(rets):
+        returns = diff(rets)/rets[:-1]
+        rstd =returns.std(ddof=1) #np.stddev(rets, 1)  #收益波动率
+        print('标准差%s'%(rstd))
+        if rstd != 0:
+            rfPerRet = rfRate / float(ntim)
+            rmean=returns.mean()
+            avgExRet = rmean - rfPerRet
+            dsharp = avgExRet / rstd
+            rsharp = dsharp * np.sqrt(ntim)
+    return rsharp
+
+
+
+#这里的收益率不要除以100 4.5的意思 就是4.5%=0.045 如果收益率除以100 夏普比率的计算也要除以100
+def preData(df):        
+    df['nav_chg_rate']=df['nav_chg_rate'].replace('%','',regex=True).apply(float)
+    return df
 
 def main():
     global mySQL, sleep_time, isproxy, proxy, header
@@ -224,18 +252,19 @@ def main():
     isproxy = 0  # 如需要使用代理，改为1，并设置代理IP参数 proxy
     proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     sleep_time = 0.1
-    
+    maxDownRate=RetracementRate()
     funds=mySQL.getfundcodesFrommysql()
     print("将要计算的基本代码如下：")
     print(funds)
-    cols1=['close','累计投入资金','累计基金份额','累计基金市值','平均基金成本','盈亏','盈亏多少钱','code','夏普比率']
+    cols1=['close','累计投入资金','累计基金份额','累计基金市值','平均基金成本','盈亏','盈亏多少钱','code','夏普比率','夏普比率(重新计算)','最大回撤率','标准差','定投天数','年波动率','年化收益率','月波动率']
     df5=pd.DataFrame([], columns=cols1);
+    startTime='2018-01-01'
+    endTime='2050-06-28'
     for fund in funds:
          try:
-            res= mySQL.searchFundNavData(fund)
+            res= mySQL.searchFundNavData(fund[0],startTime,endTime)
             # clos=['date','close']
             clos=[]
-
             pdlist=list(res);
             pd0=pd.DataFrame([],clos)
             df=pd0.append(pdlist)
@@ -244,9 +273,17 @@ def main():
             print(df)
             
             print('##################################')
-            df1= fund_dingtou(df,str(fund[0]).zfill(6))
+            df1= fund_dingtou(df,str(fund[0]).zfill(6),startTime=startTime,endTime=endTime)
             df1['code']=str(fund[0]).zfill(6);
-            df1['夏普比率']=sharpRateOne(df)
+            df1['夏普比率']=sharpRateTwo(df)
+            df1['夏普比率(重新计算)']=sharpe_rate(list(df['close']))
+            df1['标准差']=df['nav_chg_rate'].std()/100
+            df1['最大回撤率']=maxDownRate.MaxDrawdown(df['close'])
+            df1['定投天数']=len(df)
+            dingcount=(df1['定投天数']/252)
+            df1['年波动率']=av.annualVolatilityYear(list(df['close']))
+            df1['月波动率']=df1['年波动率']*sqrt(1/12)
+            df1['年化收益率']=df1['盈亏']/dingcount
             print(df1)
             df5=df5.append(df1[0:]);
             print('##################################')
