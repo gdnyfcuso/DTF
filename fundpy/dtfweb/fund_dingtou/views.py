@@ -9,5 +9,7 @@ def add(args):
 def funddata(request):
     fundlist='001,002,003'
     return HttpResponse(fundlist)
+def login(request):
+    return HttpResponse(True)
         
     

@@ -30,5 +30,12 @@ export function submitLoginUser(){
   
 }
 export function getLoginUserInfo(){
-  
+  return request({
+    url: '/user/login',
+    method: 'post',
+    data: {
+      username,
+      password
+    }
+  })  
 }
