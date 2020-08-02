@@ -1,3 +1,11 @@
+'''
+Author: gdnyfcuso@163.com
+Date: 2020-08-02 17:45:27
+LastEditTime: 2020-08-02 21:59:58
+LastEditors: Please set LastEditors
+Description: In User Settings Edit
+FilePath: \fundpy\DTFSharpeRate.py
+'''
 # -*- coding:utf-8 -*-
 
 import numpy as np
