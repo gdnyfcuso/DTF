@@ -121,8 +121,6 @@ def main():
     dtfcore=DTFcalculate()
     dtfSharpeRate=DTFSharpeRate()
     mySQL._init_('localhost', 'root', 'lixz', 'invest')
-    isproxy = 0  # 如需要使用代理，改为1，并设置代理IP参数 proxy
-    proxy = {"http": "http://110.37.84.147:8080", "https": "http://110.37.84.147:8080"}#这里需要替换成可用的代理IP
     sleep_time = 0.1
     maxDownRate=RetracementRate()
     funds=mySQL.getfundcodesFrommysql()

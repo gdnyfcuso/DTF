@@ -3,12 +3,14 @@
 import pymysql
 import time
 
+
+
 class PyMySQL:
     # 获取当前时间
     def getCurrentTime(self):
         return time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time()))
-    # 数据库初始化
-    def _init_(self, host, user, passwd, db,port=3306,charset='utf8'):
+    # 数据库初始化 mySQL._init_('localhost', 'root', 'lixz', 'invest')
+    def _init_(self, host='localhost', user='root', passwd='lixz', db='invest',port=3306,charset='utf8'):
         pymysql.install_as_MySQLdb()
         try:
             self.db =pymysql.connect(host=host,user=user,passwd=passwd,db=db,port=3306,charset='utf8')
@@ -93,11 +95,9 @@ class PyMySQL:
 def main():
     global mySQL, sleep_time, isproxy, proxy, header
     mySQL = PyMySQL()
-    mySQL._init_('localhost', 'root', 'lixz', 'invest')
-    
+    mySQL._init_()
     funds=mySQL.getfundcodesFrommysql()
     print("将要计算的基金代码如下共有(%s)个："%(len(funds)))
-    print(funds)
  
 if __name__ == "__main__":
     main()
