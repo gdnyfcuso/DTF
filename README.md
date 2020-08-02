@@ -1,1 +1,2 @@
-# DTF this is project about fund dingtou,we can select best fund for you. we can get 10% everyyear so DTF will be your best fundtool!
+# This is a fixed investment fund project, we can choose the best fund for you. We can get 10% return every year, so DTF will be your best fund tool!
+
