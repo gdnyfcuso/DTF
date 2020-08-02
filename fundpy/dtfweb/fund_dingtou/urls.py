@@ -26,6 +26,5 @@ urlpatterns = [
     path("fundata",views.funddata),
     path('login',views.login),
     url('api/666', view=lambda e: HttpResponse('戏说不是胡说')),
-    path('api/fundName',view=lambda request:HttpResponse('华夏混合'))
-    
+    path('api/fundName',view=lambda request:HttpResponse('华夏混合')),
 ]

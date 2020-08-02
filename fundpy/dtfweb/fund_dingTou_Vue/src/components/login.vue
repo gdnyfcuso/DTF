@@ -3,7 +3,7 @@
     <div class="title">
       <a class="active" href="/login">登录</a>
       <span>·</span>
-      <a href="/register">注册</a>
+      <a href="register">注册</a>
     </div>
 
     <div class="sign-up-container">
@@ -65,24 +65,32 @@
     methods: {
       //登录的方法
       submitLogin() {
-        //第一步 调用接口进行登录，返回token字符串
-        loginApi.submitLoginUser(this.user) 
-           .then(response => {
-             //第二步 获取token字符串放到cookie里面
-             //第一个参数cookie名称，第二个参数值，第三个参数作用范围
-             cookie.set('guli_token',response.data.data.token,{domain: 'localhost'})
-             
-              //第四步 调用接口 根据token获取用户信息，为了首页面显示
-              loginApi.getLoginUserInfo()
-                .then(response => {
-                  this.loginInfo = response.data.data.userInfo
-                  //获取返回用户信息，放到cookie里面
-                  cookie.set('guli_ucenter',this.loginInfo,{domain: 'localhost'})
+        this.$axios.get(this.global.host+"login")
+      .then(res=>{
+        if(res.status==200){
+          this.$router.push({path:'/fund'})
+        }
+      });
 
-                  //跳转页面
-                  window.location.href = "/";
-                })
-           })
+
+
+        //第一步 调用接口进行登录，返回token字符串
+        // loginApi.submitLoginUser(this.user) 
+        //    .then(response => {
+        //      //第二步 获取token字符串放到cookie里面
+        //      //第一个参数cookie名称，第二个参数值，第三个参数作用范围
+        //      cookie.set('guli_token',response.data.data.token,{domain: 'localhost'})             
+        //       //第四步 调用接口 根据token获取用户信息，为了首页面显示
+        //       loginApi.getLoginUserInfo()
+        //         .then(response => {
+        //           this.loginInfo = response.data.data.userInfo
+        //           //获取返回用户信息，放到cookie里面
+        //           cookie.set('guli_ucenter',this.loginInfo,{domain: 'localhost'})
+
+        //           //跳转页面
+        //           window.location.href = "/";
+        //         })
+        //    })
       },
       checkPhone (rule, value, callback) {
         //debugger
@@ -90,6 +98,9 @@
           return callback(new Error('手机号码格式不正确'))
         }
         return callback()
+      },
+      register(){
+        this.$router.push({path:'/register'})
       }
     }
   }
