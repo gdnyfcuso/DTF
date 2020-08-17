@@ -19,6 +19,9 @@ from DTFMySQL import PyMySQL
 from DTFSharpeRate import DTFSharpeRate
 
 class DTFcalculate:
+
+    def __init__(self):
+        pass
     
     def fund_dingtou(self,df100,fundcode,initAmount=300,startTime='2016-01-01',endTime='2020-06-28'):
         c_rate=2.0/1000
@@ -116,9 +119,10 @@ def cnav(fundlist,fundCode):
 
 
 def main():
-    global mySQL, sleep_time, isproxy, proxy, header,dtfcore,dtfSharpeRate
+    global mySQL, sleep_time, isproxy, proxy, header,dtfSharpeRate
     mySQL =PyMySQL()
     dtfcore=DTFcalculate()
+    
     dtfSharpeRate=DTFSharpeRate()
     mySQL._init_('localhost', 'root', 'lixz', 'invest')
     sleep_time = 0.1
@@ -143,7 +147,8 @@ def main():
             print(df)
             
             print('##################################')
-            df1=dtfCore.fund_dingtou(df,str(fund[0]).zfill(6),startTime=startTime,endTime=endTime)
+            
+            df1=dtfcore.fund_dingtou(df,str(fund[0]).zfill(6),startTime=startTime,endTime=endTime)
             df1['code']=str(fund[0]).zfill(6);
             df1['夏普比率']=dtfSharpeRate.sharpRateTwo(df)
             df1['夏普比率(重新计算)']=dtfSharpeRate.sharpe_rate(list(df['close']))
