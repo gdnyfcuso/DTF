@@ -76,7 +76,12 @@ class DTFcalculate:
         #plt.show();
         return df3;
     
-
+def file_name(file_dir):   
+    L=[]   
+    for root, dirs, files in os.walk(file_dir):  
+        for file in files:  
+                L.append(file)  
+    return L  
 
 def getCurrentTime():
         # 获取当前时间
@@ -117,25 +122,19 @@ def cnav(fundlist,fundCode):
     if yRate>0.0:
        yRateList.append((yRate,fundCode,str(ztotalAmount),str(round(zsy,4)),str(round(SyRate*100,4))))
 
-
-def main():
-    global mySQL, sleep_time, isproxy, proxy, header,dtfSharpeRate
-    mySQL =PyMySQL()
-    dtfcore=DTFcalculate()
-    
-    dtfSharpeRate=DTFSharpeRate()
-    mySQL._init_('localhost', 'root', 'lixz', 'invest')
-    sleep_time = 0.1
-    maxDownRate=RetracementRate()
-    funds=mySQL.getfundcodesFrommysql()
+def calculateFunds(funds,index=0,isReCalulate=False,startTime='2018-01-01',endTime='2050-06-28'):
     print("将要计算的基本代码如下：")
-    print(funds)
+    print(len(funds))
     cols1=['close','累计投入资金','累计基金份额','累计基金市值','平均基金成本','盈亏','盈亏多少钱','code','夏普比率','夏普比率(重新计算)','最大回撤率','标准差','定投天数','年波动率','年化收益率','月波动率']
     df5=pd.DataFrame([], columns=cols1);
-    startTime='2018-01-01'
-    endTime='2050-06-28'
     for fund in funds:
          try:
+            if not isReCalulate:
+                csvfilename=str(fund[0]).zfill(6)+'D.csv'
+                if csvfilename in filelist:
+                    print('跳过%s'%(csvfilename))
+                    continue
+
             res= mySQL.searchFundNavData(fund[0],startTime,endTime)
             # clos=['date','close']
             clos=[]
@@ -166,9 +165,54 @@ def main():
             print (getCurrentTime(),'main', fund,e )
     print(df5);
     # rss=sys.path[0]+ '\\zwdat\\cn\\day_D\\' 
-    rss=sys.path[0]+ '\\funds\\'
-    tocsvpath= rss+"DD.csv";
+    #rss=sys.path[0]+ '\\funds\\'
+    ddfilename="DD.csv";
+    if len(df5)==0:
+        return
+    tocsvpath= rss+ddfilename
+    csvheader=os.path.exists(tocsvpath)
+    df5.to_csv(tocsvpath,encoding='gbk',mode='a',header=not csvheader)
+    return '子线程完成'
 
-    df5.to_csv(tocsvpath,encoding='gbk') 
+def list_of_groups(list_info, per_list_len):
+    '''
+    :param list_info:   列表
+    :param per_list_len:  每个小列表的长度
+    :return:
+    '''
+    list_of_group = zip(*(iter(list_info),) *per_list_len) 
+    end_list = [list(i) for i in list_of_group] # i is a tuple
+    count = len(list_info) % per_list_len
+    end_list.append(list_info[-count:]) if count !=0 else end_list
+    return end_list
+
+from concurrent.futures import ThreadPoolExecutor
+rss=sys.path[0]+ '\\funds\\'
+def main():
+    global mySQL, sleep_time, isproxy, proxy, header,dtfSharpeRate,maxDownRate,dtfcore,filelist
+    isReCalulate=True
+    mySQL =PyMySQL()
+    dtfcore=DTFcalculate()
+    filelist=file_name(rss)
+    
+    
+    dtfSharpeRate=DTFSharpeRate()
+    mySQL._init_('localhost', 'root', 'lixz', 'invest')
+    sleep_time = 0.1
+    maxDownRate=RetracementRate()
+    funds=mySQL.getfundcodesFrommysql()
+    fundlist=list_of_groups(funds,500)
+
+    for index, fundcodelist in enumerate(fundlist):
+         calculateFunds(fundcodelist,index,isReCalulate)
+    return ''
+    threadPool = ThreadPoolExecutor(max_workers=len(fundlist), thread_name_prefix="dtf_")
+    for index, fundcodelist in enumerate(fundlist):
+        future = threadPool.submit(calculateFunds, fundcodelist,index)
+          #future.add_done_callback(test_result)
+        #print(future.result())
+    
+    threadPool.shutdown(wait=True)    
+    
 if __name__ == "__main__":
     main()
