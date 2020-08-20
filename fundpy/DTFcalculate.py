@@ -194,8 +194,6 @@ def main():
     mySQL =PyMySQL()
     dtfcore=DTFcalculate()
     filelist=file_name(rss)
-    
-    
     dtfSharpeRate=DTFSharpeRate()
     mySQL._init_('localhost', 'root', 'lixz', 'invest')
     sleep_time = 0.1
@@ -205,7 +203,7 @@ def main():
 
     for index, fundcodelist in enumerate(fundlist):
          calculateFunds(fundcodelist,index,isReCalulate)
-    return ''
+    return '以下多线程代码需要与数据库相配，一个代码一个表,防止大家都在等待资源'
     threadPool = ThreadPoolExecutor(max_workers=len(fundlist), thread_name_prefix="dtf_")
     for index, fundcodelist in enumerate(fundlist):
         future = threadPool.submit(calculateFunds, fundcodelist,index)
