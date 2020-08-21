@@ -190,7 +190,7 @@ from concurrent.futures import ThreadPoolExecutor
 rss=sys.path[0]+ '\\funds\\'
 def main():
     global mySQL, sleep_time, isproxy, proxy, header,dtfSharpeRate,maxDownRate,dtfcore,filelist
-    isReCalulate=True
+    isReCalulate=False
     mySQL =PyMySQL()
     dtfcore=DTFcalculate()
     filelist=file_name(rss)
@@ -199,7 +199,7 @@ def main():
     sleep_time = 0.1
     maxDownRate=RetracementRate()
     funds=mySQL.getfundcodesFrommysql()
-    fundlist=list_of_groups(funds,500)
+    fundlist=list_of_groups(funds,10)
 
     for index, fundcodelist in enumerate(fundlist):
          calculateFunds(fundcodelist,index,isReCalulate)
