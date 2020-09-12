@@ -18,7 +18,8 @@ import annualVolatility as av
 from DTFMySQL import PyMySQL
 from DTFSharpeRate import DTFSharpeRate
 
-class DTFcalculate:
+#自动交易
+class DTFAutoSell:
 
     def __init__(self):
         pass
@@ -190,7 +191,7 @@ def main():
     global mySQL, sleep_time, isproxy, proxy, header,dtfSharpeRate,maxDownRate,dtfcore,filelist
     isReCalulate=False
     mySQL =PyMySQL()
-    dtfcore=DTFcalculate()
+    dtfcore=DTFAutoSell()
     filelist=file_name(rss)
     dtfSharpeRate=DTFSharpeRate()
     mySQL._init_('localhost', 'root', 'lixz', 'invest')
